@@ -6,8 +6,11 @@ __pycache__/
 # C extensions
 *.so
 
+<<<<<<< HEAD
 venv
 
+=======
+>>>>>>> 5d5aa7135aeb5c7d08311829b863039d7daa0301
 # Distribution / packaging
 .Python
 build/
@@ -173,4 +176,8 @@ cython_debug/
 .ruff_cache/
 
 # PyPI configuration file
+<<<<<<< HEAD
 .pypirc
+=======
+.pypirc
+>>>>>>> 5d5aa7135aeb5c7d08311829b863039d7daa0301
