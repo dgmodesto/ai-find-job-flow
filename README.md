@@ -111,7 +111,7 @@ Este projeto está licenciado sob a licença MIT. Veja o arquivo `LICENSE` para 
 
 ## 🙋‍♂️ Autor
 
-Desenvolvido com 💙 por \[Seu Nome] – [LinkedIn](https://linkedin.com/in/seu-perfil) | [GitHub](https://github.com/seu-usuario)
+Desenvolvido com 💙 por \[Douglas Modesto] – [LinkedIn](https://www.linkedin.com/in/douglasmodesto) | [GitHub](https://github.com/dgmodesto)
 
 ---
 
