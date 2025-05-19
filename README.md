@@ -9,7 +9,7 @@ Este projeto tem como missão **ajudar pessoas em busca de novas oportunidades d
 
 Em tempos de instabilidade econômica e incerteza profissional, muitas pessoas se veem perdidas na busca por um novo emprego. Falta de tempo, informações desencontradas e entrevistas mal direcionadas são apenas alguns dos obstáculos enfrentados diariamente.
 
-Este projeto nasceu para **reduzir essa fricção** e **democratizar o acesso à informação de qualidade** sobre o mercado de trabalho. Usando **LLMs**, **web scraping com Selenium**, e **agentes coordenados via LangGraph**, conseguimos gerar relatórios completos com:
+Este projeto nasceu para **reduzir essa fricção** e **democratizar o acesso à informação de qualidade** sobre o mercado de trabalho. Usando **LLMs**, **web scraping com Selenium**, e **agentes coordenados via google.adk**, conseguimos gerar relatórios completos com:
 
 - ✅ Vagas abertas no LinkedIn para uma determinada função
 - ✅ Informações públicas atualizadas sobre as empresas
@@ -43,8 +43,8 @@ Esses agentes interagem em um **grafo inteligente de decisões (LangGraph)**, pr
 ### 🧱 Instalação
 
 ```bash
-git clone https://github.com/seu-usuario/agentes-de-oportunidade.git
-cd agentes-de-oportunidade
+git clone https://github.com/dgmodesto/ai-find-job-flow.git
+cd ai-find-job-flow
 pip install -r requirements.txt
 ````
 
@@ -56,11 +56,6 @@ Para rodar o pipeline principal:
 python app.py
 ```
 
-Ou, se estiver usando Streamlit para frontend:
-
-```bash
-streamlit run app.py
-```
 
 ### ⚙️ Configurações
 
