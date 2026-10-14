@@ -1,84 +1,84 @@
 # 🤖 ai-find-job-flow
 
-Pipeline multi-agente que, a partir de um cargo, coleta vagas, pesquisa a reputação das empresas e gera um resumo com dicas de entrevista. Construído com **Google ADK**, **Gemini** e **Selenium**.
+A multi-agent pipeline that, given a job title, collects job postings, researches the companies' reputation and generates a summary with interview tips. Built with **Google ADK**, **Gemini** and **Selenium**.
 
-## 🏗️ Arquitetura
+## 🏗️ Architecture
 
-### Visão geral
+### Overview
 
 ```mermaid
 flowchart LR
-    U([Candidato]) -->|cargo desejado| APP[app.py<br/>orquestração sequencial]
+    U([Candidate]) -->|desired job title| APP[app.py<br/>sequential orchestration]
     APP --> LI[linkedin_search.py<br/>Selenium]
-    APP --> A1[Agente de pesquisa<br/>Google ADK + google_search]
-    APP --> A2[Agente de resumo e dicas<br/>Google ADK]
-    LI -->|HTML público| LNK[(LinkedIn Jobs)]
+    APP --> A1[Research agent<br/>Google ADK + google_search]
+    APP --> A2[Summary and tips agent<br/>Google ADK]
+    LI -->|public HTML| LNK[(LinkedIn Jobs)]
     A1 <-->|tool call| GS[(Google Search)]
     A1 & A2 <--> GEM[(Gemini 2.0 Flash)]
-    A2 --> OUT([Relatório por empresa])
+    A2 --> OUT([Per-company report])
 ```
 
-### Fluxo
+### Flow
 
 ```mermaid
 sequenceDiagram
-    actor U as Candidato
+    actor U as Candidate
     participant O as app.py
     participant L as LinkedInSearch
-    participant R as Agente de pesquisa
-    participant S as Agente de resumo
-    U->>O: cargo
-    O->>L: buscar vagas (top 5)
-    L-->>O: vagas + descrição
-    loop para cada empresa
-        O->>R: pesquisar empresa (últimos 30 dias)
-        R-->>O: notícias e reputação (até 300 caracteres)
+    participant R as Research agent
+    participant S as Summary agent
+    U->>O: job title
+    O->>L: search jobs (top 5)
+    L-->>O: jobs + descriptions
+    loop for each company
+        O->>R: research company (last 30 days)
+        R-->>O: news and reputation (up to 300 chars)
     end
-    loop para cada vaga
-        O->>S: vaga + dados da empresa
-        S-->>O: resumo + 3 dicas de entrevista
+    loop for each job
+        O->>S: job + company data
+        S-->>O: summary + 3 interview tips
     end
-    O-->>U: relatório
+    O-->>U: report
 ```
 
-### Componentes
+### Components
 
-| Componente | Responsabilidade |
+| Component | Responsibility |
 |---|---|
-| `app.py` | Orquestra o fluxo e encapsula a execução de agentes (`call_agent`, sessão em memória) |
-| `linkedin_search.py` | Coleta vagas e descrições via Selenium |
-| `glassdoor_search.py` | Coletor de avaliações (disponível, **não** está no fluxo principal) |
-| Agente de pesquisa | Usa a ferramenta `google_search` do ADK para notícias recentes |
-| Agente de resumo | Sintetiza vaga + empresa em um resumo e 3 dicas |
+| `app.py` | Orchestrates the flow and wraps agent execution (`call_agent`, in-memory session) |
+| `linkedin_search.py` | Collects jobs and descriptions via Selenium |
+| `glassdoor_search.py` | Reviews collector (available, **not** part of the main flow) |
+| Research agent | Uses the ADK `google_search` tool for recent news |
+| Summary agent | Synthesizes job + company into a summary and 3 tips |
 
-## 🧭 Decisões de arquitetura
+## 🧭 Architecture decisions
 
-| Decisão | Motivo | Trade-off |
+| Decision | Rationale | Trade-off |
 |---|---|---|
-| Agentes especializados com instruções curtas | Responsabilidade única e prompts fáceis de ajustar | Mais chamadas ao LLM (custo/latência) |
-| Orquestração **sequencial** em Python | Simples e previsível para um fluxo linear | Sem paralelismo nem retentativas; empresas são processadas uma a uma |
-| `google_search` como ferramenta do agente | Dados recentes sem manter base própria | Qualidade depende dos resultados da busca |
-| `InMemorySessionService` | Zero infraestrutura | Sem persistência entre execuções |
+| Specialized agents with short instructions | Single responsibility; prompts are easy to tune | More LLM calls (cost/latency) |
+| **Sequential** orchestration in Python | Simple and predictable for a linear flow | No parallelism or retries; companies are processed one by one |
+| `google_search` as an agent tool | Fresh data without maintaining a own datastore | Quality depends on search results |
+| `InMemorySessionService` | Zero infrastructure | No persistence between runs |
 
-## ⚠️ Limitações e pontos de atenção
+## ⚠️ Limitations and caveats
 
-- O scraping do LinkedIn/Glassdoor depende de seletores CSS frágeis e pode **violar os termos de uso** desses serviços. Para uso real, prefira APIs oficiais ou provedores autorizados.
-- Não há tratamento de limites de taxa, *captcha* ou retentativas.
-- O resumo vem de resultados de busca e pode conter imprecisões; não há checagem de fontes.
-- O nome do modelo está fixo no código (`gemini-2.0-flash`), embora `MODEL_ID` seja exigido como variável de ambiente.
+- LinkedIn/Glassdoor scraping relies on fragile CSS selectors and may **violate those services' terms of use**. For real usage, prefer official APIs or authorized providers.
+- No handling for rate limits, CAPTCHAs or retries.
+- The summary comes from search results and may contain inaccuracies; sources are not verified.
+- The model name is hard-coded (`gemini-2.0-flash`), although `MODEL_ID` is required as an environment variable.
 
 ## 🚀 Roadmap
 
-- [ ] Substituir scraping por fontes autorizadas (API de vagas)
-- [ ] Executar a pesquisa por empresa em paralelo (`ParallelAgent` do ADK)
-- [ ] Saída estruturada (Pydantic) e citação das fontes no relatório
-- [ ] Avaliação automatizada da qualidade das dicas
-- [ ] Observabilidade (tracing, tokens, custo) e cache de pesquisas
-- [ ] Testes e CI com GitHub Actions
+- [ ] Replace scraping with authorized sources (jobs API)
+- [ ] Run per-company research in parallel (ADK `ParallelAgent`)
+- [ ] Structured output (Pydantic) and source citations in the report
+- [ ] Automated evaluation of tip quality
+- [ ] Observability (tracing, tokens, cost) and research caching
+- [ ] Tests and CI with GitHub Actions
 
-## ▶️ Como executar
+## ▶️ Running locally
 
-Pré-requisitos: Python 3.10+, Google Chrome + ChromeDriver compatível.
+Prerequisites: Python 3.10+, Google Chrome + a matching ChromeDriver.
 
 ```bash
 git clone https://github.com/dgmodesto/ai-find-job-flow.git
@@ -86,7 +86,7 @@ cd ai-find-job-flow
 pip install -r requirements.txt
 ```
 
-Configure as variáveis de ambiente:
+Set the environment variables:
 
 ```env
 GOOGLE_API_KEY=xxx
@@ -97,23 +97,23 @@ MODEL_ID=gemini-2.0-flash
 python app.py
 ```
 
-## 📄 Exemplo de resultado
+## 📄 Sample output
 
 ```markdown
 --- Braskem ---
-A Braskem enfrenta desafios recentes de mercado, mas é bem avaliada por seus funcionários.
+Braskem faces recent market challenges, but is well rated by its employees.
 
-1. Demonstre conhecimento do cenário atual do setor petroquímico.
-2. Destaque sua capacidade de resolver problemas.
-3. Enfatize valores de colaboração.
+1. Show awareness of the current petrochemical market.
+2. Highlight your problem-solving ability.
+3. Emphasize collaborative values.
 ```
 
 ## 🛠️ Stack
 
 Python · Google ADK · Gemini · Selenium
 
-## 📜 Licença
+## 📜 License
 
-MIT — veja `LICENSE`.
+MIT — see `LICENSE`.
 
-Desenvolvido por [Douglas Modesto](https://www.linkedin.com/in/douglasmodesto)
+Built by [Douglas Modesto](https://www.linkedin.com/in/douglasmodesto)
