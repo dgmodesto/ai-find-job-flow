@@ -1,116 +1,119 @@
+# 🤖 ai-find-job-flow
 
-# 🤖 Agentes de Oportunidade: Inteligência Artificial para Recolocação Profissional
+Pipeline multi-agente que, a partir de um cargo, coleta vagas, pesquisa a reputação das empresas e gera um resumo com dicas de entrevista. Construído com **Google ADK**, **Gemini** e **Selenium**.
 
-Este projeto tem como missão **ajudar pessoas em busca de novas oportunidades de carreira** usando uma abordagem inteligente, automatizada e empática. Por meio de múltiplos agentes integrados, conseguimos realizar buscas de vagas, analisar empresas e gerar dicas personalizadas para entrevistas — tudo isso em poucos minutos.
+## 🏗️ Arquitetura
 
----
+### Visão geral
 
-## 🚀 Motivação
+```mermaid
+flowchart LR
+    U([Candidato]) -->|cargo desejado| APP[app.py<br/>orquestração sequencial]
+    APP --> LI[linkedin_search.py<br/>Selenium]
+    APP --> A1[Agente de pesquisa<br/>Google ADK + google_search]
+    APP --> A2[Agente de resumo e dicas<br/>Google ADK]
+    LI -->|HTML público| LNK[(LinkedIn Jobs)]
+    A1 <-->|tool call| GS[(Google Search)]
+    A1 & A2 <--> GEM[(Gemini 2.0 Flash)]
+    A2 --> OUT([Relatório por empresa])
+```
 
-Em tempos de instabilidade econômica e incerteza profissional, muitas pessoas se veem perdidas na busca por um novo emprego. Falta de tempo, informações desencontradas e entrevistas mal direcionadas são apenas alguns dos obstáculos enfrentados diariamente.
+### Fluxo
 
-Este projeto nasceu para **reduzir essa fricção** e **democratizar o acesso à informação de qualidade** sobre o mercado de trabalho. Usando **LLMs**, **web scraping com Selenium**, e **agentes coordenados via google.adk**, conseguimos gerar relatórios completos com:
+```mermaid
+sequenceDiagram
+    actor U as Candidato
+    participant O as app.py
+    participant L as LinkedInSearch
+    participant R as Agente de pesquisa
+    participant S as Agente de resumo
+    U->>O: cargo
+    O->>L: buscar vagas (top 5)
+    L-->>O: vagas + descrição
+    loop para cada empresa
+        O->>R: pesquisar empresa (últimos 30 dias)
+        R-->>O: notícias e reputação (até 300 caracteres)
+    end
+    loop para cada vaga
+        O->>S: vaga + dados da empresa
+        S-->>O: resumo + 3 dicas de entrevista
+    end
+    O-->>U: relatório
+```
 
-- ✅ Vagas abertas no LinkedIn para uma determinada função
-- ✅ Informações públicas atualizadas sobre as empresas
-- ✅ Resumo da reputação corporativa baseado em avaliações
-- ✅ Dicas personalizadas para se preparar melhor para a entrevista
+### Componentes
 
----
+| Componente | Responsabilidade |
+|---|---|
+| `app.py` | Orquestra o fluxo e encapsula a execução de agentes (`call_agent`, sessão em memória) |
+| `linkedin_search.py` | Coleta vagas e descrições via Selenium |
+| `glassdoor_search.py` | Coletor de avaliações (disponível, **não** está no fluxo principal) |
+| Agente de pesquisa | Usa a ferramenta `google_search` do ADK para notícias recentes |
+| Agente de resumo | Sintetiza vaga + empresa em um resumo e 3 dicas |
 
-## 🧠 Arquitetura da Solução
+## 🧭 Decisões de arquitetura
 
-A arquitetura é baseada em múltiplos agentes especializados:
+| Decisão | Motivo | Trade-off |
+|---|---|---|
+| Agentes especializados com instruções curtas | Responsabilidade única e prompts fáceis de ajustar | Mais chamadas ao LLM (custo/latência) |
+| Orquestração **sequencial** em Python | Simples e previsível para um fluxo linear | Sem paralelismo nem retentativas; empresas são processadas uma a uma |
+| `google_search` como ferramenta do agente | Dados recentes sem manter base própria | Qualidade depende dos resultados da busca |
+| `InMemorySessionService` | Zero infraestrutura | Sem persistência entre execuções |
 
-1. **Agente Buscador de Vagas (LinkedIn)**: coleta oportunidades com base no cargo desejado.
-2. **Agente Analisador de Empresas**: busca notícias relevantes e recentes no Google.
-3. **Agente de Reputação Corporativa**: analisa avaliações da empresa com base em sites públicos.
-4. **Agente de Preparação para Entrevistas**: sintetiza as informações e gera dicas para a entrevista com base na cultura e desafios atuais da empresa.
+## ⚠️ Limitações e pontos de atenção
 
-Esses agentes interagem em um **grafo inteligente de decisões (LangGraph)**, proporcionando flexibilidade e adaptação a diferentes contextos.
+- O scraping do LinkedIn/Glassdoor depende de seletores CSS frágeis e pode **violar os termos de uso** desses serviços. Para uso real, prefira APIs oficiais ou provedores autorizados.
+- Não há tratamento de limites de taxa, *captcha* ou retentativas.
+- O resumo vem de resultados de busca e pode conter imprecisões; não há checagem de fontes.
+- O nome do modelo está fixo no código (`gemini-2.0-flash`), embora `MODEL_ID` seja exigido como variável de ambiente.
 
----
+## 🚀 Roadmap
 
-## 🛠 Como Executar
+- [ ] Substituir scraping por fontes autorizadas (API de vagas)
+- [ ] Executar a pesquisa por empresa em paralelo (`ParallelAgent` do ADK)
+- [ ] Saída estruturada (Pydantic) e citação das fontes no relatório
+- [ ] Avaliação automatizada da qualidade das dicas
+- [ ] Observabilidade (tracing, tokens, custo) e cache de pesquisas
+- [ ] Testes e CI com GitHub Actions
 
-### ✅ Pré-requisitos
+## ▶️ Como executar
 
-- Python 3.10+
-- Google Chrome + ChromeDriver compatível com sua versão do navegador
-- Conta com acesso ao Google Gemini ou OpenAI (via LangChain)
-- Variáveis de ambiente configuradas para suas chaves de API
-
-### 🧱 Instalação
+Pré-requisitos: Python 3.10+, Google Chrome + ChromeDriver compatível.
 
 ```bash
 git clone https://github.com/dgmodesto/ai-find-job-flow.git
 cd ai-find-job-flow
 pip install -r requirements.txt
-````
+```
 
-### ▶️ Execução
+Configure as variáveis de ambiente:
 
-Para rodar o pipeline principal:
+```env
+GOOGLE_API_KEY=xxx
+MODEL_ID=gemini-2.0-flash
+```
 
 ```bash
 python app.py
 ```
 
-
-### ⚙️ Configurações
-
-Crie um arquivo `.env` com:
-
-```env
-OPENAI_API_KEY=xxx
-GOOGLE_API_KEY=xxx
-GOOGLE_CSE_ID=xxx
-```
-
-Certifique-se de ter o `chromedriver` na mesma pasta do script ou no seu `PATH`.
-
----
-
-## 📄 Exemplo de Resultado
+## 📄 Exemplo de resultado
 
 ```markdown
-## Resumo da Braskem:
+--- Braskem ---
+A Braskem enfrenta desafios recentes de mercado, mas é bem avaliada por seus funcionários.
 
-A Braskem é uma empresa com histórico de altos e baixos recentes. Apesar de ter revertido prejuízos no último trimestre, enfrenta desafios como a pressão de agências de rating e recomendações de venda de alguns bancos. Por outro lado, a empresa demonstra ser um bom lugar para se trabalhar, sendo reconhecida pelos próprios funcionários.
-
-## 3 Dicas para a Entrevista:
-
-1. **Demonstre Conhecimento do Cenário Atual**  
-   Esteja preparado para discutir os desafios e oportunidades da Braskem no contexto do mercado petroquímico.
-
-2. **Destaque Sua Capacidade de Resolução de Problemas**  
-   Mostre como suas habilidades podem contribuir para inovação e eficiência.
-
-3. **Enfatize Seus Valores**  
-   Demonstre que você valoriza um ambiente colaborativo e positivo.
+1. Demonstre conhecimento do cenário atual do setor petroquímico.
+2. Destaque sua capacidade de resolver problemas.
+3. Enfatize valores de colaboração.
 ```
 
----
+## 🛠️ Stack
 
-## ❤️ Contribuindo
-
-Quer contribuir? Sinta-se à vontade para abrir uma issue ou enviar um PR com melhorias. Feedbacks também são bem-vindos!
-
----
+Python · Google ADK · Gemini · Selenium
 
 ## 📜 Licença
 
-Este projeto está licenciado sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
+MIT — veja `LICENSE`.
 
----
-
-## 🙋‍♂️ Autor
-
-Desenvolvido com 💙 por \[Douglas Modesto] – [LinkedIn](https://www.linkedin.com/in/douglasmodesto) | [GitHub](https://github.com/dgmodesto)
-
----
-
-## 🌟 Se este projeto te inspirou, dê uma estrela no repositório e compartilhe com alguém que esteja em busca de uma nova oportunidade!
-
-```
-
+Desenvolvido por [Douglas Modesto](https://www.linkedin.com/in/douglasmodesto)
